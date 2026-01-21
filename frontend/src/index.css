@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-[#050505] selection:bg-red-600 selection:text-white;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalUp { 
+  from { transform: translateY(30px) scale(0.95); opacity: 0; } 
+  to { transform: translateY(0) scale(1); opacity: 1; } 
+}
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+.animate-modalUp { animation: modalUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* The "Vault" Glass Effect */
+.glass-panel {
+  @apply bg-white/[0.02] border border-white/5 backdrop-blur-2xl;
+}
+
+/* Premium VIP Loader */
+.vip-loader {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #dc2626; /* Red-600 */
+  border-right-color: #dc2626;
+  border-radius: 50%;
+  display: inline-block;
+  animation: vipRotate 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+@keyframes vipRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Scrollbar Styling for Dark Mode */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+::-webkit-scrollbar-thumb {
+  background: #1a1a1a;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #dc2626;
+}
+
+/* Shadow for high-end cards */
+.shadow-3xl {
+  box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.95);
+}

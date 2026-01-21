@@ -1,0 +1,9 @@
+{
+  "name": "vortex-terminal-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd frontend && vite",
+    "build": "cd frontend && npm install && npm run build"
+  }
+}

@@ -1,0 +1,4 @@
+backend/
+scraper.py
+refresh.js
+node_modules
