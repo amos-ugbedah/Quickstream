@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { db } from '../firebase'; 
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore'; 
 
-// FIXED IMPORT PATH: Accesses the public/movies.json or src/movies.json
+// Local Vault (movies.json)
 import rawData from '../movies.json';
 
 import Navbar from '../components/Navbar';
@@ -23,8 +23,6 @@ export default function Home({ user, onLogout }) {
   // 1. Normalize and Deduplicate Movie Data
   const movieData = useMemo(() => {
     const raw = Array.isArray(rawData) ? rawData : (rawData.movies || []);
-    
-    // Remove duplicates based on URL (the only truly unique identifier)
     const uniqueMap = new Map();
     raw.forEach(m => {
       if (!uniqueMap.has(m.url)) uniqueMap.set(m.url, m);
@@ -35,13 +33,12 @@ export default function Home({ user, onLogout }) {
   const isVIP = user?.isVIP || false;
   const categories = ['All', 'African', 'Gay VIP', 'Lesbian', 'Bisexual', 'Trending', 'Hardcore'];
 
-  // 2. Real-time Broadcast Listener
+  // 2. Real-time Broadcast Listener (Firebase)
   useEffect(() => {
     const q = query(collection(db, "broadcasts"), orderBy("timestamp", "desc"), limit(1));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
         const data = snapshot.docs[0].data();
-        // Check if user is in the intended audience
         if (data.target === "all" || (data.target === "trial" && !isVIP) || (data.target === "vip" && isVIP)) {
           setAnnouncement(data.message);
         }
@@ -75,8 +72,6 @@ export default function Home({ user, onLogout }) {
       const matchesSearch = movie.title.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-    
-    // Sort by newest first
     return filtered.sort((a, b) => new Date(b.added_on) - new Date(a.added_on));
   }, [movieData, searchQuery, activeCategory]);
 
@@ -95,7 +90,6 @@ export default function Home({ user, onLogout }) {
     return [...movieData].sort((a, b) => new Date(b.added_on) - new Date(a.added_on)).slice(0, 5);
   }, [movieData]);
 
-  // Scroll to top on category change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeCategory]);
@@ -132,7 +126,7 @@ export default function Home({ user, onLogout }) {
         user={user} 
       />
 
-      {/* FEATURED SLIDER (Only on Home/All) */}
+      {/* FEATURED SLIDER */}
       {activeCategory === 'All' && !searchQuery && (
         <FeaturedSlider movies={featuredMovies} onSelect={(m) => setSelectedMovie(m)} />
       )}
@@ -192,6 +186,7 @@ export default function Home({ user, onLogout }) {
                   <MovieCard 
                     key={movie.url || i} 
                     movie={movie} 
+                    onClick={() => setSelectedMovie(movie)} // Pass selection to modal
                   />
                 ))}
               </div>
@@ -206,7 +201,7 @@ export default function Home({ user, onLogout }) {
         )}
       </main>
 
-      {/* PLAYER MODAL (Managed by Route or State) */}
+      {/* PLAYER MODAL - This will now fetch from your /api/extract handler */}
       {selectedMovie && (
         <PlayerModal 
           movie={selectedMovie} 
