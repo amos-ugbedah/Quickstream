@@ -7,12 +7,12 @@ const SmartPlayer = ({ movie, onEnded }) => {
   const hlsRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // YOUR CLOUDFLARE WORKER URL
   const CF_PROXY = "https://vortex-proxy.ugbedahamos.workers.dev/?url=";
 
   useEffect(() => {
-    // We use movie.url because that's where the original page link is stored now
     if (!movie?.url) return;
 
     const resolveAndPlay = async () => {
@@ -21,7 +21,8 @@ const SmartPlayer = ({ movie, onEnded }) => {
 
       try {
         // 1. Call Vercel Resolver to get a fresh link from the page URL
-        const apiResponse = await fetch(`/api/resolve?video_id=${encodeURIComponent(movie.url)}`);
+        // Note: Using /api/extract to match the handler below
+        const apiResponse = await fetch(`/api/extract?video_id=${encodeURIComponent(movie.url)}`);
         const data = await apiResponse.json();
 
         if (!data.url) throw new Error("Could not resolve URL");
@@ -34,6 +35,7 @@ const SmartPlayer = ({ movie, onEnded }) => {
 
           const hls = new Hls({
             enableWorker: true,
+            maxBufferLength: 30,
             xhrSetup: (xhr, u) => {
               if (u.startsWith('http') && !u.includes('vortex-proxy')) {
                 xhr.open('GET', `${CF_PROXY}${encodeURIComponent(u)}`, true);
@@ -51,13 +53,19 @@ const SmartPlayer = ({ movie, onEnded }) => {
 
           hls.on(Hls.Events.ERROR, (event, data) => {
             if (data.fatal) {
-              setError(true);
-              setLoading(false);
+              console.error("HLS Fatal Error:", data.type);
+              if (retryCount < 2) {
+                setRetryCount(prev => prev + 1);
+              } else {
+                setError(true);
+                setLoading(false);
+              }
             }
           });
 
           hlsRef.current = hls;
         } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+          // Native HLS for Safari/iOS
           videoRef.current.src = finalUrl;
           videoRef.current.oncanplay = () => setLoading(false);
         }
@@ -73,7 +81,7 @@ const SmartPlayer = ({ movie, onEnded }) => {
     return () => {
       if (hlsRef.current) hlsRef.current.destroy();
     };
-  }, [movie?.url]); // Dependency is movie.url
+  }, [movie?.url, retryCount]); // Re-runs on manual retry or URL change
 
   return (
     <div className="relative w-full h-full bg-black overflow-hidden group">
@@ -88,7 +96,7 @@ const SmartPlayer = ({ movie, onEnded }) => {
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black z-50">
           <div className="flex flex-col items-center gap-3 text-white">
-            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
             <p className="text-[10px] uppercase font-black tracking-widest animate-pulse">Establishing Secure Node...</p>
           </div>
         </div>
@@ -99,7 +107,12 @@ const SmartPlayer = ({ movie, onEnded }) => {
           <div>
             <p className="text-red-600 font-black mb-2 tracking-tighter text-xl">DECRYPTION FAILED</p>
             <p className="text-[10px] text-zinc-500 uppercase">The archive link has been restricted by the host.</p>
-            <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 border border-white/10 text-[10px] font-bold hover:bg-white/5 uppercase">Retry Connection</button>
+            <button 
+                onClick={() => setRetryCount(0)} 
+                className="mt-4 px-6 py-2 bg-red-600 text-[10px] font-black hover:bg-red-700 uppercase transition-colors rounded-sm"
+            >
+                Retry Connection
+            </button>
           </div>
         </div>
       )}

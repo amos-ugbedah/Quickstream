@@ -6,7 +6,6 @@ import re
 import random
 from datetime import datetime, timedelta
 
-# --- TARGET CONFIGURATION ---
 TARGETS = [
     {"url": "https://spankbang.com/s/nigerian/?o=all", "cat": "African", "site": "SpankBang"},
     {"url": "https://spankbang.com/s/ebony+lesbian/?o=all", "cat": "Lesbian", "site": "SpankBang"},
@@ -29,12 +28,13 @@ def fetch_master_vault():
         try:
             with open(output_path, 'r', encoding='utf-8') as f:
                 raw_data = json.load(f)
-                # Keep last 30 days of content
                 limit_date = datetime.now() - timedelta(days=30)
-                existing_movies = [m for m in raw_data if datetime.strptime(m['added_on'], "%Y-%m-%d %H:%M:%S") > limit_date]
+                # FIX: Use .get() to prevent KeyError if some entries are malformed
+                existing_movies = [m for m in raw_data if m.get('added_on') and datetime.strptime(m['added_on'], "%Y-%m-%d %H:%M:%S") > limit_date]
         except: existing_movies = []
 
-    seen_ids = {m['video_id'] for m in existing_movies}
+    # FIX: Safely extract seen IDs
+    seen_ids = {m.get('video_id') for m in existing_movies if m.get('video_id')}
     new_movies = []
     
     print(f"🚀 VORTEX: Harvesting New Metadata...")
@@ -45,16 +45,13 @@ def fetch_master_vault():
             soup = BeautifulSoup(res.content, 'html.parser')
             containers = soup.find_all(['div', 'li', 'article'], class_=re.compile(r'video|item|v-box|thumb'))
             
-            for item in containers[:20]: # Grab top 20 from each site
+            for item in containers[:25]: 
                 link_tag = item.find('a', href=True)
                 img_tag = item.find('img')
                 if not link_tag or not img_tag: continue
                 
                 href = link_tag['href']
-                if not href.startswith('http'):
-                    domain = target['url'].split('/')[2]
-                    full_url = f"https://{domain}{href}"
-                else: full_url = href
+                full_url = href if href.startswith('http') else f"https://{target['url'].split('/')[2]}{href}"
 
                 video_id = extract_unique_id(full_url)
                 if video_id in seen_ids: continue
@@ -63,10 +60,10 @@ def fetch_master_vault():
                 thumb = img_tag.get('data-src') or img_tag.get('src') or img_tag.get('data-thumb')
 
                 new_movies.append({
-                    "id": random.getrandbits(32),
+                    "id": random.getrandbits(31), # React safe ID
                     "video_id": video_id,
                     "title": title[:70],
-                    "url": full_url, # THE KEY: Store the PAGE URL, not the stream
+                    "url": full_url, 
                     "category": target['cat'],
                     "site": target['site'],
                     "thumbnail": thumb if thumb else "",
@@ -79,11 +76,11 @@ def fetch_master_vault():
             print(f"⚠️ Error on {target['site']}: {e}")
 
     final_list = (new_movies + existing_movies)
-    final_list.sort(key=lambda x: x['added_on'], reverse=True)
+    final_list.sort(key=lambda x: x.get('added_on', ""), reverse=True)
 
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(final_list, f, indent=4)
     print(f"🏆 Vault Updated. Total Movies: {len(final_list)}")
 
 if __name__ == "__main__":
-    fetch_master_vault()
+    fetch_master_vault() 
