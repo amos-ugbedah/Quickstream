@@ -1,3 +1,43 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production / Build
 dist/
+build/
+out/
+
+# Environment Variables (CRITICAL: Keeps keys private)
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor/System Files
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# Python virtual environments
+venv/
+env/
+backend/Lib/
+backend/bin/
+backend/Include/
+backend/pyvenv.cfg
+__pycache__/
+*.py[cod]
