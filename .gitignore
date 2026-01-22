@@ -40,4 +40,5 @@ backend/bin/
 backend/Include/
 backend/pyvenv.cfg
 __pycache__/
-*.py[cod]
+*.py[cod]backend/Lib/
+venv/

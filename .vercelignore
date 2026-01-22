@@ -2,3 +2,7 @@ backend/
 scraper.py
 refresh.js
 node_modules
+backend/
+venv/
+.git
+node_modules/
